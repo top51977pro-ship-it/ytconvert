@@ -39,7 +39,7 @@ names = [a['browser_download_url'] for a in json.load(sys.stdin)['assets']
          if a['name'].startswith('cpython-3.12.') and a['name'].endswith('-$PBS-install_only_stripped.tar.gz')]
 print(names[0])")
 echo "   $PY_URL"
-curl -fsSL "$PY_URL" | tar -xz -C "$R"
+curl -fsSL --retry 6 --retry-all-errors "$PY_URL" | tar -xz -C "$R"
 PYLIB="$R/python/lib/python3.12"
 rm -rf "$PYLIB"/{test,idlelib,tkinter,turtledemo,ensurepip,lib2to3} "$R/python/lib"/{itcl*,tcl*,tk*,thread*} \
        "$R/python/lib"/libtcl* "$R/python/lib"/libtk* "$R/python/share" 2>/dev/null || true
@@ -48,12 +48,12 @@ $RUN "$R/python/bin/python3" -c "import yt_dlp, ssl; print('   yt-dlp', yt_dlp.v
 
 echo "==> FFmpeg + QuickJS"
 for tool in ffmpeg ffprobe; do
-  if ! curl -fsSL "https://ffmpeg.martin-riedl.de/redirect/latest/macos/$FF/release/$tool.zip" -o "$WORK/$tool.zip"; then
+  if ! curl -fsSL --retry 6 --retry-all-errors --retry-delay 5 "https://ffmpeg.martin-riedl.de/redirect/latest/macos/$FF/release/$tool.zip" -o "$WORK/$tool.zip"; then
     echo "martin-riedl.de download failed for $tool/$FF"; exit 1
   fi
   unzip -q -o "$WORK/$tool.zip" -d "$R/app/bin"
 done
-curl -fsSL "https://github.com/quickjs-ng/quickjs/releases/download/v0.17.0/$QJS" -o "$R/app/bin/qjs"
+curl -fsSL --retry 6 --retry-all-errors "https://github.com/quickjs-ng/quickjs/releases/download/v0.17.0/$QJS" -o "$R/app/bin/qjs"
 chmod +x "$R/app/bin/"*
 file "$R/app/bin/"* | sed 's/^/   /'
 $RUN "$R/app/bin/ffmpeg" -hide_banner -version | head -1 | sed 's/^/   /'

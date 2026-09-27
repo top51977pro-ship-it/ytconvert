@@ -242,6 +242,22 @@ def build_options(info):
                 "compat_size": _size(f, duration), "muxed": True,
             })
 
+    if not video:
+        # A direct link to a video file (not a YouTube page): yt-dlp often
+        # can't tell its codecs or size, so offer the file as it is.
+        files = [f for f in formats if f.get("url") and f.get("vcodec") != "none"
+                 and f.get("ext") in ("mp4", "webm", "mov", "mkv", "m4v")]
+        if files:
+            f = files[-1]
+            size = _size(f, duration)
+            video.append({
+                "p": 0, "label": "Original", "tag": "", "fps": 0, "height": 0,
+                "codec": str(f.get("vcodec") or f.get("ext") or "").split(".")[0],
+                "fid": f["format_id"], "size": size, "vsize": size,
+                "compat_fid": f["format_id"], "compat_reencode": False,
+                "compat_size": size, "compat_vsize": size, "muxed": True,
+            })
+
     return {
         "id": info.get("id"),
         "title": info.get("title") or "video",
@@ -610,6 +626,15 @@ def register_stream(ydl, fmt):
     if not clen:
         m = re.search(r"[?&]clen=(\d+)", fmt["url"])
         clen = int(m.group(1)) if m else None
+    if not clen:
+        # Ask the server: a one-byte range answer carries the total size.
+        try:
+            from yt_dlp.networking import Request
+            with ydl.urlopen(Request(fmt["url"], headers={**(fmt.get("http_headers") or {}), "Range": "bytes=0-0"})) as r:
+                m = re.search(r"/(\d+)\s*$", r.headers.get("Content-Range") or "")
+                clen = int(m.group(1)) if m else None
+        except Exception:  # noqa: BLE001 - then this stream just can't be cut
+            clen = None
     if not clen:
         return None
     token = uuid.uuid4().hex

@@ -23,7 +23,7 @@ BIN = os.path.join(APP, "Contents/Resources/app/bin")
 BASE = "http://127.0.0.1:47821"
 OUT = tempfile.mkdtemp(prefix="ytc-test-")
 YOUTUBE = "https://www.youtube.com/watch?v=jNQXAC9IVRw"  # "Me at the zoo", 19 s
-PLAIN = "https://download.samplelib.com/mp4/sample-10s.mp4"
+PLAIN = "https://raw.githubusercontent.com/top51977pro-ship-it/ytconvert/main/deploy/mac/sample.mp4"  # 12 s, ours, serves byte ranges
 failures = []
 
 
@@ -93,10 +93,9 @@ def main():
            "height": v["height"], "label": v["label"], "muxed": bool(v.get("muxed"))}
     run_job("full-mp4", mp4)
     run_job("clip-mp4", {**mp4, "clip": {"start": 2, "end": 6}})
-    if a.get("fid"):
-        run_job("clip-mp3", {"url": url, "mode": "mp3", "bitrate": 320, "audio_fid": a["fid"],
-                             "clip": {"start": 2, "end": 7}})
-        run_job("full-mp3", {"url": url, "mode": "mp3", "bitrate": 192, "audio_fid": a["fid"]})
+    run_job("clip-mp3", {"url": url, "mode": "mp3", "bitrate": 320, "audio_fid": a.get("fid"),
+                         "clip": {"start": 2, "end": 7}})
+    run_job("full-mp3", {"url": url, "mode": "mp3", "bitrate": 192, "audio_fid": a.get("fid")})
 
     app.terminate()
     log = os.path.expanduser("~/Library/Application Support/YTConvert/ytconvert.log")
