@@ -192,7 +192,8 @@ def res_label(p):
 def build_options(info):
     """Turn a yt-dlp info dict into the quality menu the UI shows."""
     duration = info.get("duration") or 0
-    formats = info.get("formats") or []
+    # A direct file link comes back as a single format with no list.
+    formats = info.get("formats") or ([info] if info.get("url") else [])
 
     audios = [f for f in formats if _is_audio_only(f)]
     best_audio = max(audios, key=_audio_key) if audios else None
