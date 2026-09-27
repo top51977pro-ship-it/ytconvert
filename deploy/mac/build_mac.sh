@@ -62,6 +62,10 @@ echo "==> App"
 cp "$ROOT/app.py" "$R/app/"
 cp -R "$ROOT/web" "$R/app/web"
 rm -f "$R/app/web/online.html"  # website-only page
+# Compile everything now: at run time Python must not write __pycache__ into
+# the bundle, because any change inside a signed .app breaks its signature and
+# macOS then reports it as damaged on the next launch.
+$RUN "$R/python/bin/python3" -m compileall -q "$R/app" "$R/python/lib" >/dev/null || true
 
 cat > "$C/MacOS/YTConvert" <<'EOF'
 #!/bin/bash
@@ -71,7 +75,9 @@ cat > "$C/MacOS/YTConvert" <<'EOF'
 # bundle so the bundled Python and FFmpeg can start too.
 C="$(cd "$(dirname "$0")/.." && pwd)"
 /usr/bin/xattr -dr com.apple.quarantine "$C/.." 2>/dev/null
-exec "$C/Resources/python/bin/python3" "$C/Resources/app/app.py" "$@"
+# Never write .pyc files into the signed bundle (they are precompiled).
+export PYTHONDONTWRITEBYTECODE=1
+exec "$C/Resources/python/bin/python3" -B "$C/Resources/app/app.py" "$@"
 EOF
 chmod +x "$C/MacOS/YTConvert"
 

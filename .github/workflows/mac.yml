@@ -31,6 +31,11 @@ jobs:
       - name: Test on this Mac
         run: python3 deploy/mac/test_mac.py dist-mac/${{ matrix.arch }}/YTConvert.app
 
+      - name: Signature still intact after running
+        # Anything the app writes inside its own bundle breaks the seal, and
+        # macOS then calls the app "damaged" from the second launch on.
+        run: codesign --verify --strict --verbose=2 dist-mac/${{ matrix.arch }}/YTConvert.app
+
       - name: What a downloaded copy looks like to Gatekeeper
         run: |
           app=dist-mac/${{ matrix.arch }}/YTConvert.app
