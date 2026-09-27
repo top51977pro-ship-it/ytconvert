@@ -344,3 +344,6 @@ svg .fill { fill: currentColor; stroke: none; }
 .player-note .spin { display: inline-block; width: 16px; height: 16px; margin-right: 10px; vertical-align: -3px; border: 2px solid var(--line-2); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
 a.engine { text-decoration: none; }
 .fine-print { margin: 18px 4px 0; color: var(--faint); font-size: 12.5px; text-align: center; }
+/* lost the connection: the download is paused, not stuck */
+.job.offline .bar i { background: var(--warn); animation: pulse 1.4s ease-in-out infinite; }
+.job.offline .stage { color: var(--warn); }

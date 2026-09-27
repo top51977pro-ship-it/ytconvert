@@ -91,6 +91,16 @@ def find_ffmpeg():
 
 FFMPEG_DIR = find_ffmpeg()
 FFMPEG = str(Path(FFMPEG_DIR) / f"ffmpeg{EXE}") if FFMPEG_DIR else "ffmpeg"
+FFPROBE = str(Path(FFMPEG_DIR) / f"ffprobe{EXE}") if FFMPEG_DIR else "ffprobe"
+
+
+def media_duration(path):
+    r = subprocess.run([FFPROBE, "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(path)],
+                       capture_output=True, text=True, creationflags=CREATE_NO_WINDOW)
+    try:
+        return float(r.stdout.strip())
+    except ValueError:
+        return 0.0
 
 
 # ---------------------------------------------------------------- settings
@@ -389,15 +399,69 @@ PP_STAGES = {
 }
 
 
-def run_job(job):
+# How long a download waits for a lost connection before giving up (the
+# Retry button still resumes it after that).
+OFFLINE_WAIT = 15 * 60
+NO_INTERNET = "No internet connection - press Retry when you're back online."
+
+
+def is_online(timeout=4):
+    """Can we reach YouTube at all? (DNS + TCP, no request.)"""
+    import socket
     try:
-        _run_job(job)
-    except (Cancelled, DownloadCancelled):
-        job_update(job, status="cancelled", stage="Cancelled", speed=None, eta=None)
-        _cleanup_partials(job)
-    except Exception as e:  # noqa: BLE001 - surface every failure in the UI
-        log("job failed", job["id"], traceback.format_exc())
-        job_update(job, status="error", stage="Failed", error=friendly_error(e), speed=None, eta=None)
+        with socket.create_connection(("www.youtube.com", 443), timeout=timeout):
+            return True
+    except OSError:
+        return False
+
+
+def wait_for_internet(job):
+    """Hold a job while the connection is down. True once it's back, False
+    after OFFLINE_WAIT. Whatever was downloaded stays on disk, and yt-dlp
+    resumes from there."""
+    job_update(job, status="downloading", stage="Waiting for internet…", speed=None, eta=None)
+    deadline = time.time() + OFFLINE_WAIT
+    while time.time() < deadline:
+        for _ in range(6):  # check the connection every 3 s, cancel every 0.5 s
+            if job["_cancel"].is_set():
+                raise Cancelled()
+            time.sleep(0.5)
+        if is_online():
+            return True
+    return False
+
+
+def run_job(job):
+    while True:
+        try:
+            _run_job(job)
+            return
+        except (Cancelled, DownloadCancelled):
+            job_update(job, status="cancelled", stage="Cancelled", speed=None, eta=None)
+            _cleanup_partials(job)
+            return
+        except Exception as e:  # noqa: BLE001 - surface every failure in the UI
+            if job["_cancel"].is_set():
+                job_update(job, status="cancelled", stage="Cancelled", speed=None, eta=None)
+                _cleanup_partials(job)
+                return
+            if not is_online():
+                log("job", job["id"], "lost the connection, waiting")
+                try:
+                    back = wait_for_internet(job)
+                except Cancelled:
+                    job_update(job, status="cancelled", stage="Cancelled", speed=None, eta=None)
+                    _cleanup_partials(job)
+                    return
+                if back:
+                    log("job", job["id"], "connection is back, resuming")
+                    job_update(job, status="preparing", stage="Back online - resuming", error=None)
+                    continue
+                job_update(job, status="error", stage="Failed", error=NO_INTERNET, speed=None, eta=None)
+                return
+            log("job failed", job["id"], traceback.format_exc())
+            job_update(job, status="error", stage="Failed", error=friendly_error(e), speed=None, eta=None)
+            return
 
 
 def _cleanup_partials(job):
@@ -836,6 +900,13 @@ def _cut(job, outdir, req, info, streams, start, end):
         else:
             raise RuntimeError("Couldn't cut this part. Try again, or download the whole video.")
 
+    # If the connection dropped mid-cut, ffmpeg can end "successfully" with
+    # a short file. Only a complete part counts.
+    got = media_duration(out)
+    if got < length - 0.6:
+        out.unlink(missing_ok=True)
+        raise RuntimeError(f"The part came out short ({got:.1f} of {length:.1f} s) - the connection dropped.")
+
     job_update(job, status="done", stage="Done", percent=100, file=str(out),
                filename=out.name, size=out.stat().st_size, speed=None, eta=None)
 
@@ -1126,7 +1197,8 @@ class Handler(BaseHTTPRequestHandler):
                     return self._json(fetch_info(url))
                 except Exception as e:  # noqa: BLE001
                     log("info failed", url, repr(e))
-                    return self._json({"error": friendly_error(e)}, 400)
+                    msg = friendly_error(e) if is_online() else "No internet connection - check your Wi-Fi and try again."
+                    return self._json({"error": msg}, 400)
             if path == "/api/preview":
                 try:
                     return self._json({"src": make_preview((body.get("url") or "").strip())})

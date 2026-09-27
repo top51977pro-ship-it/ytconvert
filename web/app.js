@@ -315,7 +315,7 @@ function renderJobs() {
       jobEls.set(j.id, el);
     }
     el.dataset.id = j.id;
-    el.className = `job ${j.status}`;
+    el.className = `job ${j.status}${/^Waiting for internet/.test(j.stage || "") ? " offline" : ""}`;
     el.querySelector(".job-title").textContent = j.title;
     el.querySelector(".job-title").title = j.filename || j.title;
     const badge = el.querySelector(".badge");
