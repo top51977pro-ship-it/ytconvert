@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>YTConvert - YouTube to MP4 &amp; MP3 in original quality</title>
-<meta name="description" content="Free Windows app: paste a YouTube link, pick 4K, 1080p or a 320 kbps MP3, and save the original stream on your own PC.">
+<meta name="description" content="Free app for Windows and Mac: paste a YouTube link, pick 4K, 1080p or a 320 kbps MP3, and save the original stream on your own PC.">
 <meta property="og:title" content="YTConvert - YouTube to MP4 & MP3 in original quality">
 <meta property="og:description" content="Paste a link, pick the quality, get the original. Runs on your own PC.">
 <meta property="og:image" content="/app.png">
@@ -43,6 +43,11 @@
   .btn:hover { filter: brightness(1.08); }
   .btn:active { transform: translateY(1px); }
   .meta { margin: 12px 0 0; color: var(--faint); font-size: 14px; }
+  .meta a { color: var(--muted); }
+  .dl-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 30px; }
+  .dl-row .btn { margin-top: 0; }
+  .btn.alt { background: var(--card); color: var(--text); box-shadow: inset 0 0 0 1px var(--line); }
+  .btn.alt:hover { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .22); }
   .pill {
     display: inline-flex; align-items: center; gap: 8px; margin-bottom: 20px; padding: 5px 14px 5px 6px; border-radius: 99px;
     background: rgba(255, 59, 92, .1); border: 1px solid rgba(255, 59, 92, .3); color: #ffc2cd; font-size: 14px; font-weight: 600;
@@ -113,11 +118,18 @@
     <a class="pill" href="#cut"><b>NEW</b> Cut any part of a video</a>
     <h1>YouTube to MP4 &amp; MP3.<br><em>In the original quality.</em></h1>
     <p class="lead">Paste a link, pick 4K, 1080p or a 320&nbsp;kbps MP3 - or <b style="color:var(--text)">cut out just the part you want</b>. YTConvert saves it straight to your computer. Free, no ads, no limits.</p>
-    <a class="btn" href="/YTConvert-Setup.zip" download>
-      <svg viewBox="0 0 24 24"><path d="M12 4v12M6 11l6 6 6-6M5 20h14"/></svg>
-      Download for Windows
-    </a>
-    <p class="meta">Windows 10 &amp; 11 · 64-bit · free · 14 MB download</p>
+    <div class="dl-row">
+      <a class="btn" id="dlWin" href="/YTConvert-Setup.zip" download>
+        <svg viewBox="0 0 24 24"><path d="M3 5.5l7.5-1v7H3zM12 4.3L21 3v8.5h-9zM3 12.5h7.5v7L3 18.5zM12 12.5h9V21l-9-1.3z" fill="currentColor" stroke="none"/></svg>
+        Download for Windows
+      </a>
+      <a class="btn alt" id="dlMac" href="https://github.com/top51977pro-ship-it/ytconvert/releases/latest/download/YTConvert-mac-arm64.dmg">
+        <svg viewBox="0 0 24 24"><path d="M16.4 12.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9-.7 0-1.9-.9-3.1-.8-1.6 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3.1.7c1.3 0 2.1-1.1 2.8-2.3.9-1.3 1.3-2.6 1.3-2.6s-2.5-1-2.5-3.8zM14.1 5.8c.6-.8 1.1-1.9 1-3-.9 0-2.1.6-2.7 1.4-.6.7-1.1 1.8-1 2.9 1.1.1 2.1-.5 2.7-1.3z" fill="currentColor" stroke="none"/></svg>
+        Download for Mac
+      </a>
+    </div>
+    <p class="meta">Windows 10 &amp; 11 · macOS 11 or newer · free
+      <span id="macAlt"> · <a href="https://github.com/top51977pro-ship-it/ytconvert/releases/latest/download/YTConvert-mac-x86_64.dmg">Intel Mac</a></span></p>
     <div class="shot">
       <img src="app.png" width="1164" height="821" alt="YTConvert with a Messi Top 10 Goals video, offering quality options from 2160p60 (4K) down to 144p">
     </div>
@@ -157,8 +169,12 @@
 
   <h2>Questions</h2>
   <details>
-    <summary>Why a zip?</summary>
+    <summary>Why is the Windows download a zip?</summary>
     <p>So your browser and Windows can trust every file in it. Everything that runs is signed by the Python Software Foundation or Microsoft, so there's no "suspicious download" warning. The installer then fetches the video engine (FFmpeg) itself and checks its fingerprint.</p>
+  </details>
+  <details>
+    <summary>How do I install it on a Mac?</summary>
+    <p>Open the downloaded <code>.dmg</code> and drag YTConvert into Applications. The first time you open it, macOS says it can't verify the developer, because the app isn't registered with Apple. Open <b>System Settings › Privacy &amp; Security</b>, scroll down and click <b>Open Anyway</b>. You only do this once. M1–M4 Macs use the main Mac download; older Intel Macs use the <a href="https://github.com/top51977pro-ship-it/ytconvert/releases/latest/download/YTConvert-mac-x86_64.dmg">Intel version</a>.</p>
   </details>
   <details>
     <summary>How do I uninstall it?</summary>
@@ -174,7 +190,7 @@
   </details>
   <details>
     <summary>What can't it download?</summary>
-    <p>Private, members-only and age-restricted videos, live streams while they're live, and whole playlists. Paste one video link at a time. Windows only for now.</p>
+    <p>Private, members-only and age-restricted videos, live streams while they're live, and whole playlists. Paste one video link at a time.</p>
   </details>
 
   <footer>
@@ -182,5 +198,24 @@
     <p>YTConvert is an independent project, not affiliated with YouTube or Google. Built on yt-dlp, FFmpeg, QuickJS and Python.</p>
   </footer>
 </div>
+<script>
+  // Put the visitor's own platform first. Browsers on Intel Macs and Apple
+  // Silicon look alike; Chromium can tell, Safari can't (it gets arm64 + a link).
+  (async () => {
+    const mac = /Macintosh|Mac OS X/.test(navigator.userAgent);
+    if (!mac) return;
+    const win = document.getElementById("dlWin"), macBtn = document.getElementById("dlMac");
+    macBtn.classList.remove("alt"); win.classList.add("alt");
+    macBtn.parentNode.insertBefore(macBtn, win);
+    try {
+      const h = await navigator.userAgentData?.getHighEntropyValues?.(["architecture"]);
+      if (h && h.architecture === "x86") {
+        macBtn.href = macBtn.href.replace("arm64", "x86_64");
+        macBtn.lastChild.textContent = " Download for Mac (Intel)";
+        document.getElementById("macAlt").hidden = true;
+      }
+    } catch { /* keep the Apple Silicon default */ }
+  })();
+</script>
 </body>
 </html>
