@@ -8,6 +8,7 @@ download is still running.
 """
 
 import collections
+import copy
 import json
 import os
 import re
@@ -336,7 +337,7 @@ def friendly_error(e):
     if "private video" in low:
         return "This video is private."
     if "not a bot" in low:
-        return "YouTube is asking for a bot check. Click 'Update engine' and try again in a minute."
+        return "YouTube is temporarily blocking downloads from your internet connection (bot check). It usually clears up on its own within a few hours - try again later."
     if "members-only" in low or "join this channel" in low:
         return "This is a members-only video."
     if "unsupported url" in low:
@@ -349,14 +350,49 @@ def friendly_error(e):
 
 
 INFO_CACHE = {}
+# The raw answer YouTube gave for each link. Preview, download and cut all
+# reuse it instead of asking again: every extra page + player request is what
+# gets a home connection flagged with "confirm you're not a bot".
+RAW_INFO = {}  # url -> (fetched_at, sanitized info)
+RAW_INFO_TTL = 2 * 3600  # stream URLs inside it stay valid ~6 h
+raw_lock = threading.Lock()
+
+
+def remember_info(ydl, info, *urls):
+    raw = ydl.sanitize_info(info)
+    with raw_lock:
+        for u in urls:
+            if u:
+                RAW_INFO[u] = (time.time(), raw)
+        while len(RAW_INFO) > 40:
+            RAW_INFO.pop(next(iter(RAW_INFO)))
+
+
+def resolve(ydl, url, download):
+    """extract_info, but from the stored answer when there is a fresh one.
+    Falls back to asking YouTube if the stored stream links stopped working."""
+    with raw_lock:
+        hit = RAW_INFO.get(url)
+    if hit and time.time() - hit[0] < RAW_INFO_TTL:
+        try:
+            return ydl.process_ie_result(copy.deepcopy(hit[1]), download=download)
+        except DownloadCancelled:
+            raise
+        except yt_dlp.utils.DownloadError:
+            with raw_lock:
+                RAW_INFO.pop(url, None)
+    info = ydl.extract_info(url, download=download)
+    remember_info(ydl, info, url)
+    return info
 
 
 def fetch_info(url):
     with yt_dlp.YoutubeDL(base_opts()) as ydl:
         info = ydl.extract_info(url, download=False)
-    if info.get("_type") == "playlist" or "entries" in info:
-        raise ValueError("That's a playlist link - paste the link of a single video.")
-    options = build_options(info)
+        if info.get("_type") == "playlist" or "entries" in info:
+            raise ValueError("That's a playlist link - paste the link of a single video.")
+        options = build_options(info)
+        remember_info(ydl, info, url, options["url"], info.get("webpage_url"))
     INFO_CACHE[options["url"]] = options
     return options
 
@@ -573,7 +609,7 @@ def _run_job(job):
 
     job_update(job, status="preparing", stage="Connecting to YouTube")
     with yt_dlp.YoutubeDL(opts) as ydl:
-        info = ydl.extract_info(req["url"], download=True)
+        info = resolve(ydl, req["url"], download=True)
 
     if job["_cancel"].is_set():
         raise Cancelled()
@@ -726,7 +762,7 @@ def make_preview(url):
             return f"/stream/{PREVIEWS[url][1]}"
     ydl = yt_dlp.YoutubeDL({**base_opts(), "format": PREVIEW_FORMAT})
     try:
-        info = ydl.extract_info(url, download=False)
+        info = resolve(ydl, url, download=False)
     except yt_dlp.utils.DownloadError:
         info = ydl.extract_info(url, download=False)  # YouTube's answer varies per request; one retry
     fmt = (info.get("requested_formats") or [info])[0]
@@ -816,7 +852,7 @@ def _run_clip_job(job, outdir):
     ydl = yt_dlp.YoutubeDL(opts)
     tokens = []
     try:
-        info = ydl.extract_info(req["url"], download=False)
+        info = resolve(ydl, req["url"], download=False)
         if job["_cancel"].is_set():
             raise Cancelled()
         streams = []
