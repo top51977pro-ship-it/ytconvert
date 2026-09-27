@@ -1,0 +1,21 @@
+# secrets and local state - never commit
+site/.env*
+site/.vercel/
+.vercel/
+settings.json
+*.log
+Downloads/
+online-data/
+_*/
+
+# build outputs and big downloaded binaries
+bin/
+lite-build/
+dist-mac/
+desktop/
+deploy/hf-space/
+site/components/
+site/*.zip
+site/*.exe
+__pycache__/
+*.pyc

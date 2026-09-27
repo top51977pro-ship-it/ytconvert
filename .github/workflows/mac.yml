@@ -1,0 +1,45 @@
+name: Mac build
+
+on:
+  push:
+    branches: [main]
+    paths: ["app.py", "web/**", "deploy/mac/**", ".github/workflows/mac.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  mac:
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [arm64, x86_64]
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rosetta (Intel build runs under it)
+        if: matrix.arch == 'x86_64'
+        run: /usr/sbin/softwareupdate --install-rosetta --agree-to-license || true
+
+      - name: Build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash deploy/mac/build_mac.sh ${{ matrix.arch }}
+
+      - name: Test on this Mac
+        run: python3 deploy/mac/test_mac.py dist-mac/${{ matrix.arch }}/YTConvert.app
+
+      - name: What a downloaded copy looks like to Gatekeeper
+        run: |
+          app=dist-mac/${{ matrix.arch }}/YTConvert.app
+          xattr -w com.apple.quarantine "0083;$(printf %x $(date +%s));Safari;" "$app"
+          spctl --assess --type execute -vv "$app" 2>&1 || true
+          codesign -dv "$app" 2>&1 | grep -E "Signature|Identifier" || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: YTConvert-mac-${{ matrix.arch }}
+          path: dist-mac/${{ matrix.arch }}/*.dmg
+          retention-days: 14

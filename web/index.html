@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>YTConvert</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+<script>
+  // Size the app window ourselves: Edge ignores --window-size when it is
+  // already running in the background. Remembers the size the user picks.
+  (() => {
+    if (window.toolbar && window.toolbar.visible) return; // opened as a normal browser tab
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem("ytc.window")); } catch { /* storage off */ }
+    const W = Math.min(saved?.w || 1180, screen.availWidth), H = Math.min(saved?.h || 860, screen.availHeight);
+    try {
+      resizeTo(W, H);
+      moveTo(Math.round((screen.availLeft || 0) + (screen.availWidth - W) / 2),
+             Math.round((screen.availTop || 0) + (screen.availHeight - H) / 2));
+    } catch { return; }
+    let t;
+    addEventListener("resize", () => {
+      clearTimeout(t);
+      t = setTimeout(() => {
+        try { localStorage.setItem("ytc.window", JSON.stringify({ w: outerWidth, h: outerHeight })); } catch { /* ignore */ }
+      }, 400);
+    });
+  })();
+</script>
+</head>
+<body>
+<div class="app">
+
+  <header class="top">
+    <div class="brand">
+      <img src="icon.svg" alt="" class="brand-mark">
+      <span class="brand-name">YTConvert</span>
+    </div>
+    <div class="top-actions">
+      <button class="folder-chip" id="folderChip" title="Change where files are saved">
+        <svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+        <span id="folderPath">…</span>
+      </button>
+      <button class="icon-btn" id="openFolder" title="Open downloads folder">
+        <svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/></svg>
+      </button>
+      <button class="engine" id="updateBtn" title="Update the YouTube engine (yt-dlp). Do this if downloads start failing.">
+        <span class="dot"></span><span id="engineVer">engine</span>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h1>Paste a link. Pick the quality. <em>Get the original.</em></h1>
+      <form class="url-bar" id="urlForm" autocomplete="off">
+        <svg class="url-icon" viewBox="0 0 24 24"><path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>
+        <input id="url" type="text" placeholder="https://www.youtube.com/watch?v=…" spellcheck="false" autofocus>
+        <button type="button" class="ghost" id="pasteBtn">Paste</button>
+        <button type="submit" class="primary" id="fetchBtn"><span>Get video</span></button>
+      </form>
+      <p class="url-error" id="urlError" hidden></p>
+    </section>
+
+    <section class="card picker" id="picker" hidden>
+      <div class="media">
+        <div class="thumb">
+          <img id="thumb" alt="">
+          <span class="duration" id="duration"></span>
+        </div>
+        <div class="meta">
+          <h2 id="title"></h2>
+          <p class="channel" id="channel"></p>
+          <div class="seg" role="tablist">
+            <button class="seg-btn" data-mode="mp4" role="tab">
+              <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9.5v5l4.5-2.5z" class="fill"/></svg>
+              MP4 <small>video</small>
+            </button>
+            <button class="seg-btn" data-mode="mp3" role="tab">
+              <svg viewBox="0 0 24 24"><path d="M9 18V6l11-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/></svg>
+              MP3 <small>audio</small>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="options">
+        <div class="opt-head">
+          <span class="opt-title" id="optTitle">Quality</span>
+          <span class="opt-hint" id="optHint"></span>
+        </div>
+        <div class="chips" id="chips"></div>
+
+        <label class="toggle" id="compatRow">
+          <input type="checkbox" id="compat">
+          <span class="switch"></span>
+          <span class="toggle-text">
+            <b>Plays everywhere (H.264)</b>
+            <span id="compatNote">For WhatsApp, iPhone, TVs and editing apps.</span>
+          </span>
+        </label>
+
+        <label class="toggle" id="cutRow">
+          <input type="checkbox" id="cutOn">
+          <span class="switch"></span>
+          <span class="toggle-text">
+            <b>Cut a part</b>
+            <span>Download only the section you need - much faster than the whole video.</span>
+          </span>
+        </label>
+
+        <div class="cut-panel" id="cutPanel" hidden>
+          <div class="player-wrap">
+            <video id="pv" controls playsinline preload="metadata"></video>
+            <div class="player-note" id="playerNote" hidden></div>
+          </div>
+
+          <div class="timeline" id="timeline">
+            <div class="tl-track">
+              <div class="tl-range" id="tlRange"></div>
+              <div class="tl-head" id="tlHead"></div>
+            </div>
+            <button class="tl-handle start" id="hStart" aria-label="Start of the part"><i></i><span class="bubble" id="bStart"></span></button>
+            <button class="tl-handle end" id="hEnd" aria-label="End of the part"><i></i><span class="bubble" id="bEnd"></span></button>
+          </div>
+          <div class="tl-scale"><span>0:00</span><span id="tlTotal"></span></div>
+
+          <div class="cut-row">
+            <div class="time-field">
+              <label for="tStart">Start</label>
+              <input id="tStart" inputmode="numeric" spellcheck="false">
+              <button type="button" class="mini" id="setStart" title="Use where the player is now">
+                <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>From player</button>
+            </div>
+            <button type="button" class="preview" id="previewCut">
+              <svg viewBox="0 0 24 24"><path d="M7 5v14l11-7z" class="fill"/></svg>
+              <span>Preview <b id="cutLen"></b></span>
+            </button>
+            <div class="time-field end">
+              <label for="tEnd">End</label>
+              <input id="tEnd" inputmode="numeric" spellcheck="false">
+              <button type="button" class="mini" id="setEnd" title="Use where the player is now">
+                <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>From player</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="go-row">
+        <div class="summary" id="summary"></div>
+        <button class="primary big" id="downloadBtn">
+          <svg viewBox="0 0 24 24"><path d="M12 4v12M6 11l6 6 6-6M5 20h14"/></svg>
+          <span>Download</span>
+        </button>
+      </div>
+    </section>
+
+    <section class="queue">
+      <div class="queue-head">
+        <h3>Downloads</h3>
+        <button class="link" id="clearBtn" hidden>Clear finished</button>
+      </div>
+      <div id="jobs"></div>
+      <div class="empty" id="empty">
+        <svg viewBox="0 0 24 24"><path d="M12 4v12M6 11l6 6 6-6M5 20h14"/></svg>
+        <p>Your downloads show up here.</p>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" hidden></div>
+</div>
+<script src="cut.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

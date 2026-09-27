@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>YTConvert - YouTube to MP4 &amp; MP3 in original quality</title>
+<meta name="description" content="Free Windows app: paste a YouTube link, pick 4K, 1080p or a 320 kbps MP3, and save the original stream on your own PC.">
+<meta property="og:title" content="YTConvert - YouTube to MP4 & MP3 in original quality">
+<meta property="og:description" content="Paste a link, pick the quality, get the original. Runs on your own PC.">
+<meta property="og:image" content="/app.png">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<style>
+  :root {
+    --bg: #0c0d10; --card: #16181d; --card-2: #1c1f26; --line: #262a33; --line-2: #323744;
+    --text: #eceef3; --muted: #9aa1b0; --faint: #687083;
+    --accent: #ff3b5c; --accent-2: #ff6a4d; --ok: #3ddc97;
+    --font: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    --display: "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; color: var(--text); font: 16px/1.6 var(--font); -webkit-font-smoothing: antialiased;
+    background: radial-gradient(1000px 480px at 80% -160px, rgba(255, 59, 92, .16), transparent 70%), var(--bg);
+  }
+  a { color: inherit; }
+  svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 24px; }
+
+  nav { display: flex; align-items: center; height: 68px; }
+  .brand { display: flex; align-items: center; gap: 10px; font: 700 19px var(--display); }
+  .brand img { width: 30px; height: 30px; }
+
+  .hero { text-align: center; padding: 48px 0 0; }
+  h1 { margin: 0; font: 800 clamp(34px, 6vw, 58px)/1.06 var(--display); letter-spacing: -.035em; }
+  h1 em { font-style: normal; background: linear-gradient(90deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .lead { max-width: 600px; margin: 18px auto 0; color: var(--muted); font-size: 18px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 10px; height: 54px; padding: 0 28px; margin-top: 30px; border-radius: 14px;
+    color: #fff; font: 700 17px var(--font); text-decoration: none;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 10px 30px -10px rgba(255, 59, 92, .8);
+    transition: filter .15s, transform .1s;
+  }
+  .btn:hover { filter: brightness(1.08); }
+  .btn:active { transform: translateY(1px); }
+  .meta { margin: 12px 0 0; color: var(--faint); font-size: 14px; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 8px; margin-bottom: 20px; padding: 5px 14px 5px 6px; border-radius: 99px;
+    background: rgba(255, 59, 92, .1); border: 1px solid rgba(255, 59, 92, .3); color: #ffc2cd; font-size: 14px; font-weight: 600;
+    text-decoration: none;
+  }
+  .pill b { padding: 2px 8px; border-radius: 99px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; font-size: 11.5px; letter-spacing: .04em; }
+  .pill:hover { border-color: rgba(255, 59, 92, .55); }
+
+  .cut { display: grid; grid-template-columns: 1fr 1.25fr; gap: 36px; align-items: center; margin-top: 76px; padding: 32px; border-radius: 20px;
+    background: radial-gradient(500px 240px at 90% 0, rgba(255, 59, 92, .16), transparent 70%), var(--card); border: 1px solid var(--line); }
+  .cut h2 { margin: 6px 0 12px; }
+  .cut .eyebrow { color: var(--accent); font-weight: 700; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
+  .cut p { margin: 0 0 16px; color: var(--muted); }
+  .cut ol { margin: 0; padding: 0; list-style: none; counter-reset: c; }
+  .cut li { position: relative; padding-left: 36px; margin: 10px 0; color: var(--muted); }
+  .cut li b { color: var(--text); }
+  .cut li::before { counter-increment: c; content: counter(c); position: absolute; left: 0; top: 0; width: 24px; height: 24px; border-radius: 50%;
+    display: grid; place-items: center; background: rgba(255, 59, 92, .16); color: #ff8da0; font-weight: 800; font-size: 13px; }
+  .cut img { display: block; width: 100%; height: auto; border-radius: 12px; box-shadow: 0 24px 60px -24px rgba(0, 0, 0, .9), 0 0 0 1px var(--line); }
+
+  .shot { margin: 44px auto 0; border-radius: 14px; padding: 8px; background: linear-gradient(180deg, var(--line-2), var(--bg)); box-shadow: 0 40px 90px -30px rgba(0, 0, 0, .9); }
+  .shot img { display: block; width: 100%; height: auto; border-radius: 8px; }
+
+  h2 { margin: 72px 0 20px; font: 800 28px/1.2 var(--display); letter-spacing: -.02em; }
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; counter-reset: s; }
+  .step { padding: 22px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); }
+  .step::before {
+    counter-increment: s; content: counter(s); display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; margin-bottom: 12px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; font-weight: 800; font-size: 15px;
+  }
+  .step b { display: block; font: 700 17px var(--display); margin-bottom: 4px; }
+  .step span { color: var(--muted); font-size: 15px; }
+  code { padding: 1px 6px; border-radius: 6px; background: var(--card-2); border: 1px solid var(--line); font: 600 14px ui-monospace, Consolas, monospace; }
+
+  .points { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 28px; margin: 0; padding: 0; list-style: none; }
+  .points li { display: flex; gap: 12px; color: var(--muted); }
+  .points li svg { color: var(--ok); margin-top: 3px; }
+  .points b { color: var(--text); font-weight: 600; }
+
+  details { border-bottom: 1px solid var(--line); }
+  details:first-of-type { border-top: 1px solid var(--line); }
+  summary { display: flex; justify-content: space-between; gap: 16px; padding: 16px 2px; cursor: pointer; list-style: none; font-weight: 600; }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: "+"; color: var(--faint); font-size: 22px; line-height: 1; transition: transform .2s; }
+  details[open] summary::after { transform: rotate(45deg); }
+  details p { margin: -4px 2px 16px; color: var(--muted); }
+
+  footer { margin-top: 64px; padding: 28px 0 48px; border-top: 1px solid var(--line); color: var(--faint); font-size: 14px; }
+  footer p { margin: 4px 0; }
+
+  @media (max-width: 760px) {
+    .steps, .points, .cut { grid-template-columns: 1fr; }
+    .cut { padding: 22px; }
+    .hero { padding-top: 24px; }
+    h2 { margin-top: 56px; }
+  }
+  @media (max-width: 480px) {
+    .wrap { padding: 0 16px; }
+    .btn { width: 100%; justify-content: center; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav><span class="brand"><img src="icon.svg" alt="">YTConvert</span></nav>
+
+  <header class="hero">
+    <a class="pill" href="#cut"><b>NEW</b> Cut any part of a video</a>
+    <h1>YouTube to MP4 &amp; MP3.<br><em>In the original quality.</em></h1>
+    <p class="lead">Paste a link, pick 4K, 1080p or a 320&nbsp;kbps MP3 - or <b style="color:var(--text)">cut out just the part you want</b>. YTConvert saves it straight to your computer. Free, no ads, no limits.</p>
+    <a class="btn" href="/YTConvert-Setup.zip" download>
+      <svg viewBox="0 0 24 24"><path d="M12 4v12M6 11l6 6 6-6M5 20h14"/></svg>
+      Download for Windows
+    </a>
+    <p class="meta">Windows 10 &amp; 11 · 64-bit · free · 14 MB download</p>
+    <div class="shot">
+      <img src="app.png" width="1164" height="821" alt="YTConvert with a Messi Top 10 Goals video, offering quality options from 2160p60 (4K) down to 144p">
+    </div>
+  </header>
+
+  <section class="cut" id="cut">
+    <div>
+      <div class="eyebrow">New · Cut a part</div>
+      <h2>Only need 15 seconds? Get only 15 seconds.</h2>
+      <p>No more downloading a whole hour to keep one goal, one verse or one quote. YTConvert downloads just the part you mark - so it's done in seconds.</p>
+      <ol>
+        <li>Switch on <b>Cut a part</b> under the quality options.</li>
+        <li><b>Drag the two handles</b> or type the start and end - watch the preview to find the exact moment.</li>
+        <li>Press <b>Download</b>. Works for MP4 and MP3, cut to the exact frame.</li>
+      </ol>
+    </div>
+    <img src="cut.png" width="881" height="219" alt="The cut timeline: two handles marking 1:32 to 1:47, with start and end fields and a Preview 0:15 button">
+  </section>
+
+  <h2>How to install</h2>
+  <div class="steps">
+    <div class="step"><b>Download</b><span>Click <b style="display:inline;font:inherit;color:var(--text)">Download for Windows</b>. You get <code>YTConvert-Setup.zip</code> (14 MB).</span></div>
+    <div class="step"><b>Extract &amp; open</b><span>Right-click the zip, choose <b style="display:inline;font:inherit;color:var(--text)">Extract All…</b>, then open <code>YTConvert Setup</code>.</span></div>
+    <div class="step"><b>Click Install</b><span>It sets everything up in about a minute and adds a desktop shortcut. No admin rights needed.</span></div>
+  </div>
+
+  <h2>What you get</h2>
+  <ul class="points">
+    <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg><span><b>Up to 4K at 60 fps</b> - every resolution the video was uploaded in, with the exact file size shown first.</span></li>
+    <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg><span><b>No re-compression</b> - the best stream YouTube has is packed into an MP4 as-is.</span></li>
+    <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg><span><b>MP3 up to 320 kbps</b> with the thumbnail as cover art and the title in the tags.</span></li>
+    <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg><span><b>Cut just the part you need</b> - preview, drag two handles, and only that part is downloaded. Frame-exact.</span></li>
+    <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg><span><b>Plays-everywhere mode</b> - one switch makes an H.264 file for WhatsApp, iPhone and TVs.</span></li>
+    <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg><span><b>Runs on your PC</b> - no account, no tracking, nothing is uploaded.</span></li>
+    <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg><span><b>Several downloads at once</b> with live speed, time left and cancel.</span></li>
+  </ul>
+
+  <h2>Questions</h2>
+  <details>
+    <summary>Why a zip?</summary>
+    <p>So your browser and Windows can trust every file in it. Everything that runs is signed by the Python Software Foundation or Microsoft, so there's no "suspicious download" warning. The installer then fetches the video engine (FFmpeg) itself and checks its fingerprint.</p>
+  </details>
+  <details>
+    <summary>How do I uninstall it?</summary>
+    <p>Windows Settings, then Apps, then YTConvert, then Uninstall. Your downloaded videos stay where they are.</p>
+  </details>
+  <details>
+    <summary>A video says #4k but I only see 1080p.</summary>
+    <p>YTConvert lists exactly what YouTube stores for that video. If the uploader only uploaded 1080p, there is no 4K version. The app tells you when that's the case.</p>
+  </details>
+  <details>
+    <summary>Downloads suddenly stopped working.</summary>
+    <p>YouTube changes things from time to time. Click the green engine button at the top right of the app to update, then reopen YTConvert.</p>
+  </details>
+  <details>
+    <summary>What can't it download?</summary>
+    <p>Private, members-only and age-restricted videos, live streams while they're live, and whole playlists. Paste one video link at a time. Windows only for now.</p>
+  </details>
+
+  <footer>
+    <p>Only download videos you own or have permission to download, and respect creators' rights and YouTube's Terms of Service.</p>
+    <p>YTConvert is an independent project, not affiliated with YouTube or Google. Built on yt-dlp, FFmpeg, QuickJS and Python.</p>
+  </footer>
+</div>
+</body>
+</html>
